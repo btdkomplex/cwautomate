@@ -1,2 +1,5 @@
 main.py
 cwautomate/__pycache__
+cwautomate/objects/__pycache__
+.vscode/
+tempCodeRunnerFile.py

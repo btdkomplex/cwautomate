@@ -1,3 +1,6 @@
+import time
+
+
 class Computer:
     def __init__(self, connection, ComputerID):
         self.connection = connection
@@ -68,6 +71,30 @@ class Computer:
         result = cursor.fetchone()
         cursor.close()
         return False if result[0] == 0 else True
+
+    def SetFasTalk(self, Enable, Timeout=60):
+        return self.__send_command(35, 1 if Enable else 0, Timeout)
+
+    def SendMessage(self, Message, ConsoleSessionID=0, Timeout=60):
+        return self.__send_command(55, f"{Message}|{ConsoleSessionID}", Timeout)
+
+    def Reboot(self, TimeOut=300, SafeMode=False):
+        return self.__send_command(commandID=68, timeout=TimeOut, parameters=1 if SafeMode else '')
+
+    def __send_command(self, commandID, parameters="", timeout=60):
+        cursor = self.connection.mydb.cursor()
+        cursor.execute(
+            f"INSERT INTO commands(computerId, command, parameters) VALUES({self.ComputerID}, {commandID}, '{parameters}')")
+        rowID = cursor.lastrowid
+        while timeout > 0:
+            cursor.execute(
+                f"SELECT Status, Output FROM commands WHERE CmdId={rowID}")
+            result = cursor.fetchone()
+            if result[0] == 3 or result[0] == 4:
+                return (rowID, "SUCCESS" if result[0] == 3 else "FAILED", result[1])
+            time.sleep(5)
+            timeout -= 5
+        return (rowID, "RUNNING" if result[0] == 2 else "COMMAND QUEUED", "Timed Out")
 
     Name = property(__get_Name)
     LastContact = property(__get_LastContact)
